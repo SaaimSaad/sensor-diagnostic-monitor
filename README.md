@@ -1,14 +1,30 @@
 # Sensor Diagnostic Monitor
 
+> **OBD-style redundant-sensor diagnostic monitor — model-based design (Simulink/Stateflow
+> model-as-code → generated C → MIL/SIL, MCDC coverage, AUTOSAR SWC).**
+
 A model-based design (MBD) of an **OBD-style sensor diagnostic monitor** for a
 safety-relevant redundant sensor pair, built the way production powertrain
 diagnostics are built: requirements → Simulink/Stateflow model → generated C →
 MIL/SIL verification with structural coverage.
 
+It runs range / rate / cross-correlation **rationality tests** every sample,
+**debounces** failures so a single glitch never trips a code, and manages the full
+DTC lifecycle (`NO_FAULT → PENDING → CONFIRMED → HEALING`) — including freeze-frame
+capture, MIL control, and healing — through a Stateflow machine.
+
 The monitor is defined **as code** — `matlab/build_model.m` constructs the Simulink
 model and the Stateflow fault-state machine programmatically through the Simulink
 API, so the design is reviewable, diffable, and version-controlled rather than living
 in an opaque binary `.slx`.
+
+This is one of a set of automotive MBD projects following the same
+requirements → model-as-code → generated C → MIL/SIL → coverage workflow:
+
+- **[boost-pressure-control](https://github.com/SaaimSaad/boost-pressure-control)** — diesel
+  turbocharger boost-pressure (air-path) PI + feed-forward controller.
+- **[torque-safety-monitor](https://github.com/SaaimSaad/torque-safety-monitor)** — ISO 26262 /
+  E-Gas 3-level functional-safety torque monitor.
 
 > **This is an original, generic design** derived from public OBD / diagnostic
 > first principles (range / rate / correlation rationality, debounced fault
@@ -142,4 +158,4 @@ After a run, export the model diagram and coverage report into `assets/`.
 
 ## Licence
 
-MIT — see header in source files. Original work; no third-party or proprietary content.
+MIT — see [LICENSE](LICENSE). Original work; no third-party or proprietary content.
