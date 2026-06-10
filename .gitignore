@@ -1,0 +1,20 @@
+# MATLAB / Simulink build artifacts
+*.slx.autosave
+*.asv
+*.mex*
+slprj/
+*_ert_rtw/
+*_grt_rtw/
+codegen/
+generated/*.c
+generated/*.h
+generated/*.html
+!generated/.gitkeep
+
+# Generated reports / coverage (regenerate locally; commit screenshots only)
+assets/coverage/
+!assets/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

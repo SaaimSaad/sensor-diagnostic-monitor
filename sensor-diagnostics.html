@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sensor Diagnostic Monitor — Muhammed Saaim Saad</title>
+<meta name="description" content="Model-based design of an OBD-style sensor diagnostic monitor — range / rate / correlation rationality, debounced fault confirmation, freeze-frame, DTC + MIL, and healing. Simulink/Stateflow, Embedded Coder, MIL/SIL with MCDC coverage. Interactive in-browser monitor.">
+<meta name="theme-color" content="#080808">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23080808'/%3E%3Ctext x='16' y='23' font-family='Orbitron,Arial,sans-serif' font-size='17' font-weight='700' fill='%2300D2BE' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080808;--bg-surface:#0f0f0f;--bg-raised:#171717;
+  --petronas:#00D2BE;--petronas-dim:#009E8E;
+  --silver:#C8CCCE;--silver-dim:#7A8490;--white:#F4F4F4;
+  --amber:#C8A800;--red:#FF4444;--orange:#FF6A2A;
+  --font-d:'Orbitron',monospace;--font-b:'Inter',sans-serif;--font-m:'JetBrains Mono',monospace;
+  --pad:84px;--r:6px;--ease:0.28s cubic-bezier(0.4,0,0.2,1);
+}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:var(--font-b);background:var(--bg);color:var(--silver);line-height:1.6;overflow-x:hidden}
+.carbon{background-color:var(--bg);background-image:
+  repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 0,transparent 50%),
+  repeating-linear-gradient(-45deg,rgba(255,255,255,.022) 0,rgba(255,255,255,.022) 1px,transparent 0,transparent 50%);
+  background-size:6px 6px;}
+.wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.eyebrow{font-family:var(--font-d);font-size:.6rem;font-weight:600;letter-spacing:.35em;text-transform:uppercase;color:var(--petronas);margin-bottom:10px}
+.s-title{font-family:var(--font-d);font-size:clamp(1.45rem,3vw,2rem);font-weight:700;color:var(--white);letter-spacing:.04em;margin-bottom:6px}
+.s-sub{font-size:.95rem;color:var(--silver-dim);max-width:640px;line-height:1.7}
+.bar{width:44px;height:2.5px;background:var(--petronas);margin:14px 0 34px}
+.rule{height:1px;background:linear-gradient(90deg,transparent,rgba(200,204,206,.18) 25%,rgba(200,204,206,.32) 50%,rgba(200,204,206,.18) 75%,transparent)}
+.fi{opacity:0;transform:translateY(22px);transition:opacity .55s ease,transform .55s ease}
+.fi.v{opacity:1;transform:none}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;height:62px;display:flex;align-items:center;transition:background var(--ease),border-color var(--ease)}
+nav.sc{background:rgba(8,8,8,.94);backdrop-filter:blur(14px);border-bottom:1px solid rgba(0,210,190,.14)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;width:100%}
+.n-logo{font-family:var(--font-d);font-size:.85rem;font-weight:700;letter-spacing:.18em;color:var(--petronas);text-decoration:none}
+.n-back{font-family:var(--font-d);font-size:.58rem;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--silver-dim);text-decoration:none;transition:color var(--ease)}
+.n-back:hover{color:var(--white)}
+
+#hero{padding:140px 0 60px;position:relative;overflow:hidden}
+.hero-grid{position:absolute;top:0;right:0;bottom:0;width:55%;background-image:linear-gradient(rgba(0,210,190,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,210,190,.04) 1px,transparent 1px);background-size:56px 56px;-webkit-mask-image:linear-gradient(to left,rgba(0,0,0,.5),transparent);mask-image:linear-gradient(to left,rgba(0,0,0,.5),transparent);pointer-events:none}
+.h-eyebrow{font-family:var(--font-d);font-size:.6rem;letter-spacing:.4em;color:var(--petronas);text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:14px}
+.h-eyebrow::before{content:'';display:block;width:30px;height:1px;background:var(--petronas)}
+.h-title{font-family:var(--font-d);font-size:clamp(1.9rem,4.5vw,3rem);font-weight:800;color:var(--white);line-height:1.08;letter-spacing:.03em;margin-bottom:18px;position:relative;z-index:2}
+.h-lead{font-size:clamp(.95rem,1.6vw,1.08rem);color:var(--silver-dim);max-width:660px;line-height:1.7;margin-bottom:26px;position:relative;z-index:2}
+.chips{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:2}
+.chip{font-family:var(--font-d);font-size:.55rem;letter-spacing:.14em;text-transform:uppercase;color:var(--petronas);background:rgba(0,210,190,.08);border:1px solid rgba(0,210,190,.2);padding:5px 11px;border-radius:2px}
+.chip.wip{color:var(--amber);background:rgba(200,168,0,.1);border-color:rgba(200,168,0,.25)}
+
+section{padding:var(--pad) 0}
+
+.sim-wrap{background:var(--bg-raised);border:1px solid rgba(255,255,255,.07);border-top:2px solid var(--petronas);border-radius:var(--r);padding:22px}
+.sim-note,.cap{font-size:.78rem;color:var(--silver-dim);line-height:1.65}
+.cap{margin-top:12px}.cap b{color:var(--silver)}
+.sim-note{margin-top:14px;font-style:italic}.sim-note b{color:var(--silver);font-style:normal}
+
+.cluster-body{display:grid;grid-template-columns:1fr 300px;gap:22px;align-items:start}
+canvas{width:100%;display:block;background:#0a0a0a;border:1px solid rgba(255,255,255,.06);border-radius:6px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;padding:10px 12px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:6px;font-size:.74rem;color:var(--silver-dim)}
+.legend span{display:inline-flex;align-items:center;gap:7px}
+.sw{width:15px;height:3px;border-radius:2px;display:inline-block}
+.sw.s1{background:var(--petronas)}.sw.s2{height:0;border-top:2px dashed var(--amber)}
+.sw.cnt{background:var(--orange)}
+
+.cpanel{display:flex;flex-direction:column}
+.ctrl{margin-bottom:12px}
+.ctrl label{display:flex;justify-content:space-between;font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:6px}
+.ctrl label span{color:var(--petronas)}
+.ctrl input[type=range]{width:100%;accent-color:var(--petronas);cursor:pointer}
+.seg{display:flex;background:var(--bg-surface);border:1px solid rgba(255,255,255,.08);border-radius:4px;padding:3px;margin-bottom:14px}
+.seg-btn{flex:1;font-family:var(--font-d);font-size:.54rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:8px 0;border:none;background:transparent;color:var(--silver-dim);cursor:pointer;border-radius:2px;transition:all var(--ease)}
+.seg-btn.active{background:rgba(0,210,190,.14);color:var(--petronas);box-shadow:inset 0 0 0 1px rgba(0,210,190,.3)}
+.seg-btn.cold.active{background:rgba(90,150,255,.14);color:#8Fb6ff;box-shadow:inset 0 0 0 1px rgba(90,150,255,.3)}
+
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.btn{font-family:var(--font-d);font-size:.52rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:9px 8px;border-radius:2px;cursor:pointer;border:1px solid rgba(200,204,206,.3);background:transparent;color:var(--silver);transition:all var(--ease);flex:1 1 46%}
+.btn:hover{border-color:var(--silver);color:var(--white)}
+.btn.fault{border-color:rgba(255,68,68,.4);color:var(--red)}
+.btn.fault:hover{background:rgba(255,68,68,.12)}
+.btn.warn{border-color:rgba(200,168,0,.4);color:var(--amber)}
+.btn.warn:hover,.btn.warn{}
+.btn.amb{border-color:rgba(200,168,0,.4);color:var(--amber)}
+.btn.amb:hover{background:rgba(200,168,0,.12)}
+
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.ro{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:9px 11px}
+.ro-l{font-family:var(--font-d);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:4px}
+.ro-v{font-family:var(--font-d);font-size:1rem;font-weight:700;color:var(--petronas)}
+.state-pill{display:inline-block;font-family:var(--font-d);font-size:.56rem;letter-spacing:.08em;padding:3px 8px;border-radius:2px}
+.st-NO_FAULT{color:var(--petronas);background:rgba(0,210,190,.12);border:1px solid rgba(0,210,190,.3)}
+.st-PENDING{color:var(--amber);background:rgba(200,168,0,.12);border:1px solid rgba(200,168,0,.32)}
+.st-CONFIRMED{color:var(--red);background:rgba(255,68,68,.12);border:1px solid rgba(255,68,68,.35)}
+.st-HEALING{color:#8Fb6ff;background:rgba(90,150,255,.12);border:1px solid rgba(90,150,255,.32)}
+
+/* MIL lamp */
+.lampbox{display:flex;align-items:center;gap:13px;margin-top:14px;padding:11px 14px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:5px;transition:border-color .45s ease,box-shadow .45s ease}
+.lampbox.on{border-color:rgba(200,140,0,.32);box-shadow:0 0 24px rgba(200,140,0,.07)}
+.mil-wrap{width:40px;height:40px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.mil-lamp{width:38px;height:30px;color:rgba(200,204,206,.14);transition:color .38s ease,filter .38s ease}
+@keyframes milPulse{0%,100%{filter:drop-shadow(0 0 5px rgba(200,140,0,.5))}50%{filter:drop-shadow(0 0 14px rgba(200,140,0,.88))}}
+.mil-lamp.on{color:var(--amber);animation:milPulse 2.4s ease-in-out infinite}
+.lamp-col{flex:1;min-width:0}
+.lamp-lbl{font-family:var(--font-d);font-size:.44rem;letter-spacing:.13em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:5px}
+.lamp-row{display:flex;align-items:center;gap:7px}
+.lamp-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);flex-shrink:0;transition:background .3s ease,border-color .3s ease,box-shadow .3s ease}
+.lamp-dot.on{background:var(--amber);border-color:var(--amber);box-shadow:0 0 8px rgba(200,140,0,.6)}
+.lamp-state{font-family:var(--font-d);font-size:.72rem;font-weight:700;color:var(--silver-dim);transition:color .3s ease}
+.lamp-state.on{color:var(--amber)}
+
+/* freeze-frame */
+.ff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:6px}
+.ff{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:9px 10px}
+.ff-l{font-family:var(--font-d);font-size:.46rem;letter-spacing:.12em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:3px}
+.ff-v{font-family:var(--font-m);font-size:.8rem;color:var(--white)}
+.ff-empty{font-size:.78rem;color:var(--silver-dim);font-style:italic;padding:6px 2px}
+
+.card{background:var(--bg-raised);border:1px solid rgba(255,255,255,.06);border-radius:var(--r);padding:24px}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);vertical-align:top}
+th{font-family:var(--font-d);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim)}
+td .rid{font-family:var(--font-m);color:var(--petronas);font-size:.8rem}
+.req-type{font-size:.66rem;color:var(--silver-dim)}
+pre{background:#0a0a0a;border:1px solid rgba(255,255,255,.07);border-radius:var(--r);padding:20px 22px;overflow-x:auto;font-family:var(--font-m);font-size:.8rem;line-height:1.62;color:var(--silver)}
+.cm{color:var(--silver-dim)}.kw{color:var(--petronas)}.fn{color:#9ecbff}.nu{color:var(--amber)}
+.art{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.art:last-child{border-bottom:none}
+.art-status{font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:2px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.st-done{color:var(--petronas);background:rgba(0,210,190,.1);border:1px solid rgba(0,210,190,.25)}
+.st-pending{color:var(--silver-dim);background:rgba(200,204,206,.05);border:1px solid rgba(200,204,206,.14)}
+.art h4{font-family:var(--font-d);font-size:.72rem;letter-spacing:.06em;color:var(--white);margin-bottom:4px}
+.art p{font-size:.85rem;color:var(--silver-dim);line-height:1.6}
+.art a{color:var(--petronas);text-decoration:none}.art a:hover{text-decoration:underline}
+.btn-p{display:inline-block;font-family:var(--font-d);font-size:.6rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:var(--petronas);color:var(--bg);padding:13px 28px;border-radius:2px;text-decoration:none;transition:background var(--ease),transform var(--ease)}
+.btn-p:hover{background:var(--petronas-dim);transform:translateY(-2px)}
+.btn-s{display:inline-block;font-family:var(--font-d);font-size:.6rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:transparent;color:var(--silver);padding:13px 28px;border-radius:2px;text-decoration:none;border:1px solid rgba(200,204,206,.35);transition:all var(--ease)}
+.btn-s:hover{border-color:var(--silver);color:var(--white)}
+footer{padding:28px 0;border-top:1px solid rgba(255,255,255,.06)}
+.ft-in{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.ft-logo{font-family:var(--font-d);font-size:.68rem;letter-spacing:.22em;color:var(--petronas)}
+.ft-copy{font-size:.74rem;color:var(--silver-dim)}
+
+.diagram{width:100%;height:auto;display:block}
+.formula-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
+.formula{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-left:2px solid var(--petronas);border-radius:4px;padding:13px 15px;min-width:0}
+.formula.wide{grid-column:1 / -1}
+.formula code{display:block;font-family:var(--font-m);font-size:.78rem;color:var(--white);margin-bottom:7px;white-space:normal;overflow-wrap:break-word}
+.formula p{font-size:.8rem;color:var(--silver-dim);line-height:1.55}
+.formula b{color:var(--silver);font-weight:600}
+.legend-line{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;font-size:.74rem;color:var(--silver-dim)}
+.legend-line span{display:inline-flex;align-items:center;gap:7px}
+.legend-line i{width:13px;height:13px;border-radius:3px;display:inline-block}
+.lg-gen{background:rgba(0,210,190,.18);border:1px solid var(--petronas)}
+.lg-plant{background:rgba(120,128,134,.14);border:1px solid var(--silver-dim)}
+
+.stat-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
+.stat{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-top:2px solid var(--petronas);border-radius:5px;padding:14px 15px}
+.s-val{font-family:var(--font-d);font-size:1.5rem;font-weight:700;color:var(--white);line-height:1}
+.s-lab{font-family:var(--font-d);font-size:.5rem;letter-spacing:.16em;text-transform:uppercase;color:var(--silver-dim);margin-top:9px}
+.s-req{font-size:.72rem;color:var(--petronas);margin-top:5px}
+.stat-cap{font-size:.72rem;color:var(--silver-dim);margin:0 0 24px}
+
+.tabs{display:flex;flex-wrap:wrap;gap:2px;border-bottom:1px solid rgba(255,255,255,.08)}
+.tab{font-family:var(--font-d);font-size:.55rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 16px;border:none;background:transparent;color:var(--silver-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color var(--ease),border-color var(--ease)}
+.tab:hover{color:var(--silver)}
+.tab[aria-selected=true]{color:var(--petronas);border-bottom-color:var(--petronas)}
+.tabpanel[hidden]{display:none}
+.tabpanel pre{border-top-left-radius:0;border-top-right-radius:0}
+
+/* ── sensor voltage strip ── */
+.sv-strip{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.sv-card{background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-top:2px solid rgba(0,210,190,.45);border-radius:5px;padding:12px 14px;transition:border-top-color .35s ease,box-shadow .35s ease}
+.sv-card.bad{border-top-color:rgba(255,68,68,.75);box-shadow:inset 0 0 0 1px rgba(255,68,68,.07)}
+.sv-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sv-lbl{font-family:var(--font-d);font-size:.43rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim)}
+.sv-tag{font-family:var(--font-d);font-size:.4rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;transition:color .3s ease,background .3s ease,border-color .3s ease}
+.sv-tag.ok{color:var(--petronas);background:rgba(0,210,190,.08);border:1px solid rgba(0,210,190,.2)}
+.sv-tag.bad{color:var(--red);background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3)}
+.sv-num{font-family:var(--font-d);font-size:1.28rem;font-weight:700;letter-spacing:.05em;color:var(--petronas);margin-bottom:10px;transition:color .3s ease}
+.sv-num.bad{color:var(--red)}
+.sv-bar{height:5px;background:rgba(255,255,255,.05);border-radius:3px;position:relative;margin-bottom:6px;overflow:hidden}
+.sv-bar-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--petronas-dim),var(--petronas));transition:width .09s linear,background .3s ease}
+.sv-bar-fill.bad{background:linear-gradient(90deg,rgba(200,22,22,.8),var(--red))}
+.sv-oor{position:absolute;top:0;bottom:0;width:1.5px;background:rgba(255,68,68,.5);border-radius:1px;pointer-events:none}
+.sv-scale{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.54rem;color:var(--silver-dim);opacity:.45}
+/* ── rationality test LEDs ── */
+.test-row{display:flex;gap:6px;margin-bottom:12px}
+.test-ind{flex:1;display:flex;align-items:center;gap:6px;background:var(--bg-surface);border:1px solid rgba(255,255,255,.06);border-radius:4px;padding:6px 8px;font-family:var(--font-d);font-size:.48rem;letter-spacing:.1em;text-transform:uppercase;color:var(--silver-dim);transition:border-color var(--ease),color var(--ease)}
+.test-ind.fail{border-color:rgba(255,68,68,.3);color:var(--red)}
+.test-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);transition:background var(--ease),box-shadow var(--ease),border-color var(--ease);flex-shrink:0}
+.test-dot.fail{background:var(--red);border-color:var(--red);box-shadow:0 0 5px rgba(255,68,68,.5)}
+/* ── arc debounce counter ── */
+.arc-cnt{display:flex;justify-content:center;margin-top:4px;margin-bottom:4px}
+.arc-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8;stroke-linecap:round}
+.arc-fill{fill:none;stroke:var(--amber);stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .08s linear}
+.arc-num{font-family:var(--font-d);font-size:14px;font-weight:700;fill:var(--amber)}
+.arc-denom{font-family:var(--font-d);font-size:8px;fill:var(--silver-dim)}
+/* ── state machine flow ── */
+.sm-flow{display:flex;align-items:center;margin-bottom:10px;gap:0}
+.sm-pill{flex:1;text-align:center;font-family:var(--font-d);font-size:.4rem;letter-spacing:.06em;text-transform:uppercase;padding:6px 3px;border:1px solid rgba(255,255,255,.1);border-radius:3px;color:var(--silver-dim);background:var(--bg-surface);transition:background .35s ease,border-color .35s ease,color .35s ease;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sm-pill.s-nofault{background:rgba(0,210,190,.1);border-color:rgba(0,210,190,.4);color:var(--petronas)}
+.sm-pill.s-pending{background:rgba(200,168,0,.1);border-color:rgba(200,168,0,.4);color:var(--amber)}
+.sm-pill.s-confirmed{background:rgba(255,68,68,.12);border-color:rgba(255,68,68,.45);color:var(--red)}
+.sm-pill.s-healing{background:rgba(90,150,255,.1);border-color:rgba(90,150,255,.4);color:#8Fb6ff}
+.sm-chevron{flex-shrink:0;padding:0 4px;color:rgba(200,204,206,.22);font-size:.65rem;line-height:1;user-select:none}
+
+@keyframes faultPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,68,68,0)}50%{box-shadow:0 0 0 7px rgba(255,68,68,.22)}}
+.btn.fault.injecting{background:rgba(255,68,68,.13);border-color:var(--red);color:var(--red);animation:faultPulse 1.5s ease infinite}
+@keyframes spikeFired{0%{background:rgba(200,168,0,.22);border-color:var(--amber);color:var(--amber)}100%{background:transparent;border-color:rgba(200,168,0,.4);color:var(--amber)}}
+.btn.amb{border-color:rgba(200,168,0,.4);color:var(--amber)}
+.btn.amb:hover{background:rgba(200,168,0,.1)}
+.btn.amb.firing{animation:spikeFired .9s ease forwards}
+.fault-status{display:flex;align-items:center;gap:9px;margin-bottom:10px;font-family:var(--font-d);font-size:.5rem;letter-spacing:.1em;text-transform:uppercase;color:var(--silver-dim)}
+.fault-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);transition:background var(--ease),box-shadow var(--ease),border-color var(--ease);flex-shrink:0}
+.fault-dot.on{background:var(--red);border-color:var(--red);box-shadow:0 0 8px 1px rgba(255,68,68,.45)}
+.fault-note{font-size:.72rem;color:var(--silver-dim);line-height:1.7;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)}
+.fault-note b{color:var(--silver);font-weight:600}
+.fn-state{font-family:var(--font-d);font-size:.56rem;letter-spacing:.06em;padding:1px 6px;border-radius:2px;display:inline-block}
+.fn-state.pend{color:var(--amber);background:rgba(200,168,0,.1)}
+.fn-state.conf{color:var(--red);background:rgba(255,68,68,.1)}
+.fn-state.heal{color:#8Fb6ff;background:rgba(90,150,255,.1)}
+
+@media(max-width:860px){
+  :root{--pad:60px}
+  .cluster-body{grid-template-columns:1fr}
+  .sv-strip{grid-template-columns:1fr}
+  .hero-grid{display:none}
+  .formula-grid{grid-template-columns:1fr}
+  .stat-strip{grid-template-columns:repeat(2,1fr)}
+}
+@media(prefers-reduced-motion:reduce){.fi{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<nav id="nav">
+  <div class="wrap nav-in">
+    <a href="newcv.html" class="n-logo">MSS</a>
+    <a href="newcv.html#projects" class="n-back">← All Projects</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section id="hero" class="carbon">
+  <div class="hero-grid"></div>
+  <div class="wrap">
+    <div class="h-eyebrow fi">Project · Powertrain MBD · Diagnostics</div>
+    <h1 class="h-title fi">Sensor Diagnostic<br>Monitor</h1>
+    <p class="h-lead fi">An OBD-style diagnostic monitor for a safety-relevant redundant sensor pair, built the full MBD way: requirements → Simulink/Stateflow model → generated C → MIL/SIL with structural coverage. Three rationality tests (electrical <b style="color:var(--silver)">range</b>, signal <b style="color:var(--silver)">rate</b>, and cross-channel <b style="color:var(--silver)">correlation</b>) feed a debounced fault-confirmation machine — <code style="font-family:var(--font-m)">NO_FAULT → PENDING → CONFIRMED → HEALING</code> — that sets a DTC, captures a freeze-frame, drives the MIL, and heals only after a sustained clean run. The panel below is a live, in-browser run of the same logic — inject a fault and watch it confirm, store, and heal.</p>
+    <div class="chips fi">
+      <span class="chip">Stateflow</span><span class="chip">OBD / ISO 14229</span>
+      <span class="chip">Embedded Coder</span><span class="chip">MISRA-C</span>
+      <span class="chip">MIL / SIL</span><span class="chip">MCDC Coverage</span>
+      <span class="chip">AUTOSAR SWC</span><span class="chip wip">In Progress</span>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- INTERACTIVE MONITOR -->
+<section id="sim">
+  <div class="wrap">
+    <div class="eyebrow fi">Live · Try It</div>
+    <h2 class="s-title fi">Diagnostic Console</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px"><b style="color:var(--silver)">New here?</b> Move the <b style="color:var(--silver)">pedal</b> — the two redundant sensors track together and the monitor stays green. Then hit a fault button: a sustained fault walks <b style="color:var(--amber)">PENDING → </b><b style="color:var(--red)">CONFIRMED</b> after a debounce, lights the MIL, and freezes the conditions. A single glitch never trips it. Cold engine? Diagnostics are disabled.</p>
+
+    <div class="sim-wrap fi">
+      <div class="sv-strip">
+        <div class="sv-card" id="sv-card1">
+          <div class="sv-head">
+            <span class="sv-lbl">Sensor A · APP1</span>
+            <span class="sv-tag ok" id="sv-tag1">NORMAL</span>
+          </div>
+          <div class="sv-num" id="sv-num1">—</div>
+          <div class="sv-bar">
+            <div class="sv-bar-fill" id="sv-fill1" style="width:0%"></div>
+            <div class="sv-oor" id="sv-oor1" style="left:96%"></div>
+          </div>
+          <div class="sv-scale"><span>0 V</span><span>5 V</span></div>
+        </div>
+        <div class="sv-card" id="sv-card2">
+          <div class="sv-head">
+            <span class="sv-lbl">Sensor B · APP2</span>
+            <span class="sv-tag ok" id="sv-tag2">NORMAL</span>
+          </div>
+          <div class="sv-num" id="sv-num2">—</div>
+          <div class="sv-bar">
+            <div class="sv-bar-fill" id="sv-fill2" style="width:0%"></div>
+          </div>
+          <div class="sv-scale"><span>0 V</span><span>2.5 V</span></div>
+        </div>
+      </div>
+      <div class="cluster-body">
+        <div class="graph-col">
+          <canvas id="plot" width="720" height="250"></canvas>
+          <div class="legend">
+            <span><i class="sw s1"></i> Sensor A (primary)</span>
+            <span><i class="sw s2"></i> Sensor B (redundant)</span>
+            <span><i class="sw cnt"></i> Fault confirm counter</span>
+          </div>
+          <p class="cap"><b>What you're watching:</b> both sensors read the same pedal in %, so they sit on top of each other when healthy. The orange counter fills as a fault persists; at the confirm threshold the trace turns <b style="color:var(--red)">red</b> — the DTC is stored and the MIL comes on. It stays on until a sustained clean run heals it.</p>
+        </div>
+
+        <div class="cpanel">
+          <div class="seg" role="group" aria-label="Engine temperature">
+            <button class="seg-btn active" id="sel-warm" aria-pressed="true">Warm · Enabled</button>
+            <button class="seg-btn cold" id="sel-cold" aria-pressed="false">Cold · Off</button>
+          </div>
+
+          <div class="ctrl">
+            <label>Pedal <span id="v-ped">35%</span></label>
+            <input type="range" id="s-ped" min="0" max="100" value="35" step="1">
+          </div>
+
+          <div class="fault-status">
+            <span class="fault-dot" id="fault-dot"></span>
+            <span id="fault-label">No fault injected</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn fault" id="b-inj">Inject Fault</button>
+            <button class="btn" id="b-rem">Remove Fault</button>
+          </div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn amb" id="b-spike" style="flex:1 1 100%">Inject Rate Spike</button>
+          </div>
+          <div class="btn-row" style="margin-top:6px">
+            <button class="btn" id="b-reset" style="flex:1 1 100%">Reset Simulation</button>
+          </div>
+          <p class="fault-note">
+            <b>Inject Fault</b> clamps Sensor A to 4.90 V (OOR) — a sustained fault that walks <span class="fn-state pend">PENDING</span> → <span class="fn-state conf">CONFIRMED</span> and lights the MIL. <b>Remove</b> enters <span class="fn-state heal">HEALING</span>.<br><br>
+            <b>Inject Spike</b> fires a single-sample +3 V burst — Rate (and Corr) LEDs flash, the counter ticks up by 2 then decays straight back to zero. <b>A glitch never confirms.</b> That is the debounce protection working exactly as designed.<br><br>
+            <b>Reset</b> starts fresh.
+          </p>
+
+          <div class="test-row">
+            <div class="test-ind" id="ti-range"><span class="test-dot" id="td-range"></span>Range</div>
+            <div class="test-ind" id="ti-rate"><span class="test-dot" id="td-rate"></span>Rate</div>
+            <div class="test-ind" id="ti-corr"><span class="test-dot" id="td-corr"></span>Corr</div>
+          </div>
+
+          <div class="lampbox" id="lampbox">
+            <div class="mil-wrap">
+              <svg class="mil-lamp" id="mil" viewBox="-3 -3 66 50" aria-label="Malfunction indicator lamp — check engine">
+                <!-- cylinder heads -->
+                <rect x="13" y="0" width="11" height="9" rx="2.5" fill="currentColor"/>
+                <rect x="36" y="0" width="11" height="9" rx="2.5" fill="currentColor"/>
+                <!-- intake / exhaust flanges -->
+                <rect x="0" y="16" width="9" height="12" rx="2" fill="currentColor"/>
+                <rect x="51" y="16" width="9" height="12" rx="2" fill="currentColor"/>
+                <!-- engine block body -->
+                <rect x="7" y="7" width="46" height="30" rx="4" fill="currentColor"/>
+                <!-- bolt holes -->
+                <circle cx="17" cy="18" r="3" fill="#090b0c"/>
+                <circle cx="43" cy="18" r="3" fill="#090b0c"/>
+                <circle cx="17" cy="30" r="3" fill="#090b0c"/>
+                <circle cx="43" cy="30" r="3" fill="#090b0c"/>
+                <!-- center cavity -->
+                <rect x="24" y="14" width="12" height="16" rx="2.5" fill="#090b0c" opacity=".55"/>
+              </svg>
+            </div>
+            <div class="lamp-col">
+              <div class="lamp-lbl">Malfunction Indicator</div>
+              <div class="lamp-row">
+                <span class="lamp-dot" id="lamp-dot"></span>
+                <span class="lamp-state" id="mil-txt">OFF</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ro-l" style="font-family:var(--font-d);font-size:.46rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);margin-top:14px;margin-bottom:0">Debounce Counter</div>
+          <div class="arc-cnt">
+            <svg viewBox="-60 -58 120 76" width="120" height="76">
+              <path d="M-50,0 A50,50 0 0,1 50,0" class="arc-bg"/>
+              <path id="arc-fill" d="M-50,0 A50,50 0 0,1 50,0" class="arc-fill" stroke-dasharray="157" stroke-dashoffset="157"/>
+              <text id="arc-num" class="arc-num" x="0" y="-4" text-anchor="middle">0</text>
+              <text class="arc-denom" x="0" y="10" text-anchor="middle">/ 20</text>
+            </svg>
+          </div>
+
+          <div class="sm-flow">
+            <div class="sm-pill" id="smp-0">NO_FAULT</div>
+            <div class="sm-chevron">›</div>
+            <div class="sm-pill" id="smp-1">PENDING</div>
+            <div class="sm-chevron">›</div>
+            <div class="sm-pill" id="smp-2">CONFIRMED</div>
+            <div class="sm-chevron">›</div>
+            <div class="sm-pill" id="smp-3">HEALING</div>
+          </div>
+
+          <div class="readouts">
+            <div class="ro"><div class="ro-l">State</div><div class="ro-v"><span id="ro-state" class="state-pill st-NO_FAULT">NO_FAULT</span></div></div>
+            <div class="ro"><div class="ro-l">DTC</div><div class="ro-v" id="ro-dtc">—</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- freeze-frame -->
+      <div style="margin-top:16px">
+        <div class="ro-l" style="font-family:var(--font-d);font-size:.5rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);margin-bottom:8px">Freeze-Frame <span id="ff-tag" style="color:var(--silver-dim)">— not captured</span></div>
+        <div id="ff-body" class="ff-empty">No confirmed fault. The freeze-frame snapshots the operating point at the moment a DTC is confirmed.</div>
+        <div id="ff-grid" class="ff-grid" style="display:none">
+          <div class="ff"><div class="ff-l">Tripped test</div><div class="ff-v" id="ff-code">—</div></div>
+          <div class="ff"><div class="ff-l">Engine speed</div><div class="ff-v" id="ff-rpm">—</div></div>
+          <div class="ff"><div class="ff-l">Load</div><div class="ff-v" id="ff-load">—</div></div>
+          <div class="ff"><div class="ff-l">Coolant</div><div class="ff-v" id="ff-ect">—</div></div>
+          <div class="ff"><div class="ff-l">Sensor A</div><div class="ff-v" id="ff-s1">—</div></div>
+          <div class="ff"><div class="ff-l">Sensor B</div><div class="ff-v" id="ff-s2">—</div></div>
+        </div>
+      </div>
+
+      <p class="sim-note">A browser run of the diagnostic logic (range / rate / correlation rationality, a shared debounced fail counter, and the NO_FAULT→PENDING→CONFIRMED→HEALING machine) — the same logic and parameters as the Simulink/Stateflow model in the repo, and as <code>verify_diag_logic.js</code>. <b>Not</b> the Simulink artifact itself.</p>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- THEORY -->
+<section id="theory">
+  <div class="wrap">
+    <div class="eyebrow fi">Theory</div>
+    <h2 class="s-title fi">How It Works</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:26px">Three rationality tests, one debounced counter, and a four-state machine. The same logic runs in the console above.</p>
+    <div class="card fi">
+      <svg class="diagram" viewBox="0 0 960 300" font-family="Inter,sans-serif" role="img" aria-label="Diagnostic monitor logic diagram">
+        <defs>
+          <marker id="ta" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#00D2BE"/></marker>
+          <marker id="tad" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#7A8490"/></marker>
+          <style>
+            .bx{fill:#15211f;stroke:#00D2BE;stroke-width:1.4}
+            .bx2{fill:#121314;stroke:#7A8490;stroke-width:1.2}
+            .lb{fill:#F4F4F4;font-size:13px;font-weight:600}
+            .sl{fill:#8a93a0;font-size:10px}
+            .ln{stroke:#00D2BE;stroke-width:1.8;fill:none;marker-end:url(#ta)}
+            .lnd{stroke:#7A8490;stroke-width:1.5;fill:none;marker-end:url(#tad);stroke-dasharray:4 3}
+          </style>
+        </defs>
+        <!-- sensors -->
+        <rect class="bx2" x="24" y="40" width="150" height="50" rx="6"/>
+        <text class="lb" x="99" y="62" text-anchor="middle">Sensor A · B</text>
+        <text class="sl" x="99" y="78" text-anchor="middle">redundant pair</text>
+        <!-- tests -->
+        <rect class="bx" x="220" y="14" width="150" height="42" rx="6"/>
+        <text class="lb" x="295" y="34" text-anchor="middle">Range</text>
+        <text class="sl" x="295" y="48" text-anchor="middle">electrical OOR</text>
+        <rect class="bx" x="220" y="64" width="150" height="42" rx="6"/>
+        <text class="lb" x="295" y="84" text-anchor="middle">Rate</text>
+        <text class="sl" x="295" y="98" text-anchor="middle">implausible step</text>
+        <rect class="bx" x="220" y="114" width="150" height="42" rx="6"/>
+        <text class="lb" x="295" y="134" text-anchor="middle">Correlation</text>
+        <text class="sl" x="295" y="148" text-anchor="middle">A vs B mismatch</text>
+        <!-- counter -->
+        <rect class="bx" x="430" y="64" width="160" height="50" rx="6"/>
+        <text class="lb" x="510" y="86" text-anchor="middle">Debounce</text>
+        <text class="sl" x="510" y="101" text-anchor="middle">shared fail counter</text>
+        <!-- machine -->
+        <rect class="bx" x="650" y="40" width="280" height="100" rx="6"/>
+        <text class="lb" x="790" y="64" text-anchor="middle">Fault State Machine</text>
+        <text class="sl" x="790" y="84" text-anchor="middle">NO_FAULT · PENDING</text>
+        <text class="sl" x="790" y="100" text-anchor="middle">CONFIRMED · HEALING</text>
+        <text class="sl" x="790" y="120" text-anchor="middle">DTC · freeze-frame · MIL</text>
+        <!-- enable band -->
+        <rect class="bx2" x="430" y="190" width="160" height="44" rx="6"/>
+        <text class="lb" x="510" y="212" text-anchor="middle">Enable</text>
+        <text class="sl" x="510" y="227" text-anchor="middle">warm-up gate</text>
+        <!-- arrows -->
+        <path class="ln" d="M174,65 L218,40"/>
+        <path class="ln" d="M174,68 L218,85"/>
+        <path class="ln" d="M174,72 L218,130"/>
+        <path class="ln" d="M370,89 L428,89"/>
+        <path class="ln" d="M590,89 L648,89"/>
+        <path class="lnd" d="M510,190 L510,116"/>
+        <text class="sl" x="518" y="160" text-anchor="start">gates counting</text>
+      </svg>
+
+      <div class="legend-line">
+        <span><i class="lg-gen"></i> Monitor software (code-generated)</span>
+        <span><i class="lg-plant"></i> Sensors &amp; enable inputs</span>
+      </div>
+
+      <p class="sim-note" style="margin-top:18px">Read it left-to-right: a <b>redundant sensor pair</b> feeds three <b>rationality tests</b>. Any failing test increments one shared <b>debounced counter</b> (but only while the <b>enable</b> gate is open — a warm engine). When the counter reaches the confirm threshold, the <b>state machine</b> latches a <b>CONFIRMED</b> DTC, captures a <b>freeze-frame</b>, and lights the <b>MIL</b>; a sustained clean run then heals it. A single-sample glitch raises the counter by one and it ages straight back to zero — so it never confirms.</p>
+
+      <div class="formula-grid">
+        <div class="formula"><code>range_bad = v1 &lt; v_oor_lo || v1 &gt; v_oor_hi</code><p><b>Range:</b> the primary sensor is electrically out of range (short to ground / battery, open circuit) — outside the band the real pedal travel never reaches.</p></div>
+        <div class="formula"><code>rate_bad = |v1 − v1_prev| &gt; dv_max</code><p><b>Rate:</b> the signal jumps more than is physically possible in one 10 ms sample — a spike, dropout, or EMI burst.</p></div>
+        <div class="formula"><code>corr_bad = |pct1 − pct2| &gt; corr_tol</code><p><b>Correlation:</b> the two redundant channels disagree by more than tolerance — catches single-channel drift / stuck where one sensor is still in-range.</p></div>
+        <div class="formula"><code>failCnt = clamp(failCnt ± 1, 0, confirm_cnt)  // only if enabled</code><p><b>Debounce:</b> one shared counter rises on any failing test and decays on clean samples; confirmation needs persistence, so noise ages out.</p></div>
+        <div class="formula wide"><code>NO_FAULT →(cnt&gt;0) PENDING →(cnt≥confirm) CONFIRMED →(clean) HEALING →(heal_cnt clean) NO_FAULT</code><p><b>State machine:</b> PENDING is an unconfirmed DTC (MIL off); CONFIRMED stores the DTC + freeze-frame and lights the MIL; HEALING keeps the MIL on until a full clean run clears it (like OBD warm-up cycles).</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- ARCHITECTURE -->
+<section id="arch">
+  <div class="wrap">
+    <div class="eyebrow fi">Design</div>
+    <h2 class="s-title fi">Architecture</h2>
+    <div class="bar fi"></div>
+    <div class="card fi">
+      <svg viewBox="0 0 960 410" style="width:100%;height:auto" font-family="Inter,sans-serif" role="img" aria-label="System architecture: signal source, code-generated monitor, and consumers">
+        <defs>
+          <marker id="aar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#00D2BE"/></marker>
+          <style>
+            .abx{fill:#15211f;stroke:#00D2BE;stroke-width:1.4}
+            .abx2{fill:#121314;stroke:#7A8490;stroke-width:1.2}
+            .alb{fill:#F4F4F4;font-size:13px;font-weight:600}
+            .asl{fill:#8a93a0;font-size:10px}
+            .alane{fill:#00D2BE;font-size:10.5px;font-weight:600;letter-spacing:.08em}
+            .alane2{fill:#7A8490;font-size:10.5px;font-weight:600;letter-spacing:.08em}
+            .aln{stroke:#00D2BE;stroke-width:1.7;fill:none;marker-end:url(#aar)}
+          </style>
+        </defs>
+        <rect x="16" y="14"  width="928" height="92"  rx="10" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.06)"/>
+        <rect x="16" y="170" width="928" height="100" rx="10" fill="rgba(0,210,190,.05)" stroke="#00D2BE" stroke-width="1.4" stroke-dasharray="6 4"/>
+        <rect x="16" y="318" width="928" height="78"  rx="10" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.06)"/>
+
+        <text class="alane2" x="30" y="30">SIGNAL SOURCE · SENSORS &amp; OPERATING POINT</text>
+        <rect class="abx2" x="30"  y="40" width="210" height="56" rx="6"/><text class="alb" x="135" y="64" text-anchor="middle">APP1 / APP2</text><text class="asl" x="135" y="82" text-anchor="middle">redundant volts</text>
+        <rect class="abx2" x="262" y="40" width="210" height="56" rx="6"/><text class="alb" x="367" y="64" text-anchor="middle">rpm · load</text><text class="asl" x="367" y="82" text-anchor="middle">operating point</text>
+        <rect class="abx2" x="494" y="40" width="210" height="56" rx="6"/><text class="alb" x="599" y="64" text-anchor="middle">coolant temp</text><text class="asl" x="599" y="82" text-anchor="middle">enable gate</text>
+
+        <path class="aln" d="M480,108 L480,168"/><text class="asl" x="472" y="142" text-anchor="end">v1·v2·rpm·load·ect</text>
+
+        <text class="alane" x="30" y="186">DIAGNOSTIC MONITOR · CODE-GENERATED · EMBEDDED CODER · 100 Hz</text>
+        <rect class="abx" x="30"  y="196" width="210" height="58" rx="6"/><text class="alb" x="135" y="220" text-anchor="middle">Rationality</text><text class="asl" x="135" y="238" text-anchor="middle">range · rate · corr</text>
+        <rect class="abx" x="262" y="196" width="210" height="58" rx="6"/><text class="alb" x="367" y="220" text-anchor="middle">Debounce</text><text class="asl" x="367" y="238" text-anchor="middle">shared fail counter</text>
+        <rect class="abx" x="494" y="196" width="210" height="58" rx="6"/><text class="alb" x="599" y="220" text-anchor="middle">Supervisor</text><text class="asl" x="599" y="238" text-anchor="middle">Stateflow · 4 states</text>
+        <rect class="abx" x="726" y="196" width="204" height="58" rx="6"/><text class="alb" x="828" y="220" text-anchor="middle">DTC + Freeze</text><text class="asl" x="828" y="238" text-anchor="middle">store · MIL</text>
+
+        <path class="aln" d="M540,270 L540,316"/><text class="asl" x="548" y="296" text-anchor="start">state·dtc·mil·ff_valid</text>
+
+        <text class="alane2" x="30" y="334">CONSUMERS · DTC MEMORY &amp; OBD</text>
+        <rect class="abx2" x="30"  y="344" width="290" height="44" rx="6"/><text class="alb" x="175" y="371" text-anchor="middle">DTC memory</text>
+        <rect class="abx2" x="335" y="344" width="290" height="44" rx="6"/><text class="alb" x="480" y="371" text-anchor="middle">MIL / cluster</text>
+        <rect class="abx2" x="640" y="344" width="290" height="44" rx="6"/><text class="alb" x="785" y="371" text-anchor="middle">Scan tool (CDT / OBD)</text>
+      </svg>
+      <p class="sim-note" style="margin-top:18px">Three layers. The <b>signal source</b> (grey, top) is the redundant sensor pair plus the operating point and the coolant-temperature enable gate. The <b>monitor</b> (teal, inside the dashed boundary) is the code-generated unit running at <b>100 Hz</b>: rationality tests, the debounced counter, the Stateflow supervisor, and DTC/freeze-frame storage. The <b>consumers</b> (grey, bottom) are DTC memory, the MIL/cluster, and the off-board scan tool. The interface is small and explicit: <code style="font-family:var(--font-m)">v1·v2·rpm·load·ect</code> in, <code style="font-family:var(--font-m)">state·dtc·mil·ff_valid</code> out — the same contract as <code>autosar/DiagMonitor.arxml</code>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- REQUIREMENTS -->
+<section id="reqs">
+  <div class="wrap">
+    <div class="eyebrow fi">Traceability</div>
+    <h2 class="s-title fi">Requirements</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px">The <b style="color:var(--silver)">Verification</b> column lists the <b>planned</b> MIL/SIL methods (run on a personal MATLAB). The monitor logic itself is re-proven headlessly today by <code>verify_diag_logic.js</code> — independent of Simulink — and exercised live in the console above.</p>
+
+    <div class="stat-strip fi">
+      <div class="stat"><div class="s-val">200 ms</div><div class="s-lab">Confirmation</div><div class="s-req">debounced · 20 samples</div></div>
+      <div class="stat"><div class="s-val">0</div><div class="s-lab">False trips</div><div class="s-req">on 1-sample glitch</div></div>
+      <div class="stat"><div class="s-val">3</div><div class="s-lab">Heal cycles</div><div class="s-req">to MIL-off</div></div>
+      <div class="stat"><div class="s-val">3</div><div class="s-lab">Monitors</div><div class="s-req">range · rate · corr</div></div>
+    </div>
+    <p class="stat-cap fi">Latest headless run · <code>verify_diag_logic.js</code> — REQ-DIAG-001…010 all pass.</p>
+
+    <div class="card fi" style="padding:6px 8px;margin-bottom:18px">
+      <p style="font-family:var(--font-d);font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:var(--silver-dim);padding:10px 12px 2px">Interface · 100 Hz (Ts = 10 ms)</p>
+      <table>
+        <thead><tr><th>Signal</th><th>Dir</th><th>Type · Range</th></tr></thead>
+        <tbody>
+          <tr><td><code>v1</code></td><td>in</td><td>single, V · 0 … 5 (APP1 primary)</td></tr>
+          <tr><td><code>v2</code></td><td>in</td><td>single, V · 0 … 5 (APP2 redundant)</td></tr>
+          <tr><td><code>rpm</code></td><td>in</td><td>single, rpm · 0 … 7000</td></tr>
+          <tr><td><code>load</code></td><td>in</td><td>single, % · 0 … 100</td></tr>
+          <tr><td><code>ect</code></td><td>in</td><td>single, °C · −40 … 130 (enable)</td></tr>
+          <tr><td><code>state</code></td><td>out</td><td>uint8 · 0 … 3 (NO_FAULT…HEALING)</td></tr>
+          <tr><td><code>dtc</code></td><td>out</td><td>uint8 · bit0 range, bit1 rate, bit2 corr</td></tr>
+          <tr><td><code>mil</code></td><td>out</td><td>boolean · 0 / 1</td></tr>
+          <tr><td><code>ff_valid</code></td><td>out</td><td>boolean · freeze-frame captured</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card fi" style="padding:6px 8px">
+      <table>
+        <thead><tr><th>ID</th><th>Requirement</th><th>Verification</th></tr></thead>
+        <tbody>
+          <tr><td><span class="rid">REQ-DIAG-001</span><br><span class="req-type">Functional</span></td><td>Flag a range fault when the primary sensor is electrically out of range.</td><td>MIL · <code>tc_range</code> · JS</td></tr>
+          <tr><td><span class="rid">REQ-DIAG-002</span><br><span class="req-type">Functional</span></td><td>Flag a rate fault on an implausible step (&gt; <code>dv_max</code>) between samples.</td><td>MIL · <code>tc_rate</code> · JS</td></tr>
+          <tr><td><span class="rid">REQ-DIAG-003</span><br><span class="req-type">Functional</span></td><td>Flag a correlation fault when the redundant channels disagree by &gt; <code>corr_tol</code>.</td><td>MIL · <code>tc_corr</code> · JS</td></tr>
+          <tr><td><span class="rid">REQ-DIAG-004</span><br><span class="req-type">Safety</span></td><td>Confirm a DTC only after <code>confirm_cnt</code> debounced samples; a single-sample glitch never confirms.</td><td>MIL · <code>tc_confirm</code>, <code>tc_glitch</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-005</span><br><span class="req-type">Functional</span></td><td>Report PENDING for an unconfirmed detected fault; MIL stays off.</td><td>MIL · <code>tc_confirm</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-006</span><br><span class="req-type">Functional</span></td><td>Capture a freeze-frame of the operating point and tripping test at confirmation.</td><td>MIL · <code>tc_confirm</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-007</span><br><span class="req-type">Functional</span></td><td>MIL on iff ≥ 1 DTC is confirmed (remains on through HEALING until cleared).</td><td>MIL · <code>tc_confirm</code>, <code>tc_heal</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-008</span><br><span class="req-type">Functional</span></td><td>Heal a confirmed DTC only after <code>heal_cnt</code> consecutive clean samples; archive the DTC and clear the MIL; re-fail re-confirms.</td><td>MIL · <code>tc_heal</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-009</span><br><span class="req-type">Functional</span></td><td>Run tests / accumulate failures only when enable conditions are met; counter frozen otherwise.</td><td>MIL · <code>tc_enable</code></td></tr>
+          <tr><td><span class="rid">REQ-DIAG-010</span><br><span class="req-type">Interface</span></td><td>Conform to the interface above; outputs stay within declared ranges (<code>state ∈ [0,3]</code>, <code>dtc ∈ [0,255]</code>).</td><td>Analysis + all MIL tests</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<div class="rule"></div>
+
+<!-- GENERATED C -->
+<section id="code">
+  <div class="wrap">
+    <div class="eyebrow fi">Production C</div>
+    <h2 class="s-title fi">Monitor Setup</h2>
+    <div class="bar fi"></div>
+    <p class="s-sub fi" style="margin-bottom:22px">The deployed monitor and its setup, in MISRA-aligned C — the same logic running in the console above. Embedded Coder produces this from the Simulink/Stateflow model in the repo; shown here in equivalent hand form.</p>
+    <div class="card fi" style="padding:0;border:none;background:transparent">
+      <div class="tabs" role="tablist" aria-label="Monitor setup">
+        <button class="tab" role="tab" id="tab-params" aria-controls="tp-params" aria-selected="true">Parameters</button>
+        <button class="tab" role="tab" id="tab-rat" aria-controls="tp-rat" aria-selected="false" tabindex="-1">Rationality</button>
+        <button class="tab" role="tab" id="tab-sup" aria-controls="tp-sup" aria-selected="false" tabindex="-1">Supervisor</button>
+        <button class="tab" role="tab" id="tab-if" aria-controls="tp-if" aria-selected="false" tabindex="-1">Interface</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="tp-params" aria-labelledby="tab-params"><pre><span class="cm">/* diag_params.h — one parameter set (mirrors matlab/diag_params.m).
+ * Monitor executes at Ts = 0.01 s (100 Hz). */</span>
+<span class="kw">#define</span> TS           <span class="nu">0.01F</span>   <span class="cm">/* sample time [s] */</span>
+
+<span class="cm">/* sensor scaling: APP1 0.5..4.5V, APP2 0.25..2.25V over 0..100% */</span>
+<span class="kw">#define</span> V1_LO        <span class="nu">0.5F</span>
+<span class="kw">#define</span> V1_HI        <span class="nu">4.5F</span>
+<span class="kw">#define</span> V2_LO        <span class="nu">0.25F</span>
+<span class="kw">#define</span> V2_HI        <span class="nu">2.25F</span>
+
+<span class="cm">/* rationality thresholds */</span>
+<span class="kw">#define</span> V_OOR_LO     <span class="nu">0.20F</span>   <span class="cm">/* electrical out-of-range low  [V] */</span>
+<span class="kw">#define</span> V_OOR_HI     <span class="nu">4.80F</span>   <span class="cm">/* electrical out-of-range high [V] */</span>
+<span class="kw">#define</span> DV_MAX       <span class="nu">1.50F</span>   <span class="cm">/* max plausible step / sample [V] */</span>
+<span class="kw">#define</span> CORR_TOL     <span class="nu">10.0F</span>   <span class="cm">/* max |pct1-pct2| mismatch [%] */</span>
+
+<span class="cm">/* confirmation / healing / enable */</span>
+<span class="kw">#define</span> CONFIRM_CNT  <span class="nu">20U</span>     <span class="cm">/* failing samples to confirm (=200 ms) */</span>
+<span class="kw">#define</span> HEAL_CNT     <span class="nu">300U</span>    <span class="cm">/* clean samples to heal (~3 cycles) */</span>
+<span class="kw">#define</span> WARM_MIN     <span class="nu">60.0F</span>   <span class="cm">/* coolant temp enabling diagnostics [C] */</span>
+
+<span class="cm">/* DTC bitfield: bit0 range, bit1 rate, bit2 correlation */</span></pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-rat" aria-labelledby="tab-rat" hidden><pre><span class="cm">/* diag_rationality_step — range + rate + correlation with a shared
+ * debounced fail counter. Counter frozen unless enable conditions met. */</span>
+<span class="kw">void</span> <span class="fn">diag_rationality_step</span>(<span class="kw">const</span> DiagIn *<span class="kw">const</span> in, DiagWork *<span class="kw">const</span> w)
+{
+    <span class="kw">const</span> <span class="kw">real32_T</span> pct1 = (in-&gt;v1 - V1_LO) / (V1_HI - V1_LO) * <span class="nu">100.0F</span>;
+    <span class="kw">const</span> <span class="kw">real32_T</span> pct2 = (in-&gt;v2 - V2_LO) / (V2_HI - V2_LO) * <span class="nu">100.0F</span>;
+
+    <span class="kw">boolean_T</span> range_bad = (in-&gt;v1 &lt; V_OOR_LO) || (in-&gt;v1 &gt; V_OOR_HI);   <span class="cm">/* REQ-DIAG-001 */</span>
+    <span class="kw">boolean_T</span> rate_bad  = <span class="fn">fabsf</span>(in-&gt;v1 - w-&gt;v1_prev) &gt; DV_MAX;          <span class="cm">/* REQ-DIAG-002 */</span>
+    <span class="kw">boolean_T</span> corr_bad  = <span class="fn">fabsf</span>(pct1 - pct2) &gt; CORR_TOL;               <span class="cm">/* REQ-DIAG-003 */</span>
+    <span class="kw">boolean_T</span> any_bad   = range_bad || rate_bad || corr_bad;
+    w-&gt;testbits = (<span class="kw">uint8_T</span>)range_bad | ((<span class="kw">uint8_T</span>)rate_bad &lt;&lt; <span class="nu">1</span>) | ((<span class="kw">uint8_T</span>)corr_bad &lt;&lt; <span class="nu">2</span>);
+
+    w-&gt;enable = (in-&gt;ect &gt;= WARM_MIN);                                <span class="cm">/* REQ-DIAG-009 */</span>
+    <span class="kw">if</span> (w-&gt;enable) {
+        <span class="kw">if</span> (any_bad) { <span class="kw">if</span> (w-&gt;failCnt &lt; CONFIRM_CNT) w-&gt;failCnt++; }
+        <span class="kw">else</span>         { <span class="kw">if</span> (w-&gt;failCnt &gt; <span class="nu">0U</span>)         w-&gt;failCnt--; }
+    }
+    w-&gt;any_bad  = any_bad;
+    w-&gt;v1_prev  = in-&gt;v1;
+}</pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-sup" aria-labelledby="tab-sup" hidden><pre><span class="cm">/* diag_supervisor_step — NO_FAULT-&gt;PENDING-&gt;CONFIRMED-&gt;HEALING (Stateflow). */</span>
+<span class="kw">void</span> <span class="fn">diag_supervisor_step</span>(<span class="kw">const</span> DiagIn *<span class="kw">const</span> in, DiagWork *<span class="kw">const</span> w,
+                          DiagOut *<span class="kw">const</span> out)
+{
+    <span class="kw">switch</span> (w-&gt;state) {
+    <span class="kw">case</span> DIAG_NO_FAULT:
+        <span class="kw">if</span> (w-&gt;failCnt &gt; <span class="nu">0U</span>) w-&gt;state = DIAG_PENDING;            <span class="cm">/* REQ-DIAG-005 */</span>
+        <span class="kw">break</span>;
+    <span class="kw">case</span> DIAG_PENDING:
+        <span class="kw">if</span> (w-&gt;failCnt &gt;= CONFIRM_CNT) {                        <span class="cm">/* REQ-DIAG-004 */</span>
+            w-&gt;state = DIAG_CONFIRMED; w-&gt;dtc = w-&gt;testbits;
+            <span class="kw">if</span> (!w-&gt;ff_valid) {                                 <span class="cm">/* REQ-DIAG-006 */</span>
+                w-&gt;ff = (FreezeFrame){ in-&gt;rpm, in-&gt;load, in-&gt;ect,
+                                      in-&gt;v1, in-&gt;v2, w-&gt;dtc };
+                w-&gt;ff_valid = <span class="kw">true</span>;
+            }
+        } <span class="kw">else if</span> (w-&gt;failCnt == <span class="nu">0U</span>) { w-&gt;state = DIAG_NO_FAULT; }
+        <span class="kw">break</span>;
+    <span class="kw">case</span> DIAG_CONFIRMED:
+        <span class="kw">if</span> (w-&gt;enable &amp;&amp; !w-&gt;any_bad) { w-&gt;state = DIAG_HEALING; w-&gt;healCnt = <span class="nu">0U</span>; }
+        <span class="kw">break</span>;
+    <span class="kw">case</span> DIAG_HEALING:
+        <span class="kw">if</span> (w-&gt;any_bad) { w-&gt;state = DIAG_CONFIRMED; w-&gt;healCnt = <span class="nu">0U</span>; }   <span class="cm">/* re-fail */</span>
+        <span class="kw">else if</span> (++w-&gt;healCnt &gt;= HEAL_CNT) {                  <span class="cm">/* REQ-DIAG-008 */</span>
+            w-&gt;dtc = <span class="nu">0U</span>; w-&gt;ff_valid = <span class="kw">false</span>; w-&gt;failCnt = <span class="nu">0U</span>;
+            w-&gt;state = DIAG_NO_FAULT;
+        }
+        <span class="kw">break</span>;
+    <span class="kw">default</span>: w-&gt;state = DIAG_NO_FAULT; <span class="kw">break</span>;
+    }
+    out-&gt;state    = w-&gt;state;
+    out-&gt;dtc      = w-&gt;dtc;
+    out-&gt;mil      = (w-&gt;state == DIAG_CONFIRMED) || (w-&gt;state == DIAG_HEALING); <span class="cm">/* REQ-DIAG-007 */</span>
+    out-&gt;ff_valid = w-&gt;ff_valid;
+}</pre></div>
+      <div class="tabpanel" role="tabpanel" id="tp-if" aria-labelledby="tab-if" hidden><pre><span class="cm">/* diag_monitor_types.h — I/O contract (REQ-DIAG-010). */</span>
+<span class="kw">typedef enum</span> { DIAG_NO_FAULT = <span class="nu">0</span>, DIAG_PENDING,
+               DIAG_CONFIRMED, DIAG_HEALING } DiagState;   <span class="cm">/* 0 … 3 */</span>
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">real32_T</span> rpm, load, ect, v1, v2;
+    <span class="kw">uint8_T</span>  code;                <span class="cm">/* tripping test bitfield */</span>
+} FreezeFrame;
+
+<span class="kw">typedef struct</span> {
+    <span class="kw">real32_T</span>  v1, v2;             <span class="cm">/* redundant sensor pair [V] */</span>
+    <span class="kw">real32_T</span>  rpm, load, ect;      <span class="cm">/* operating point + enable */</span>
+} DiagIn;
+
+<span class="kw">typedef struct</span> {
+    DiagState state;               <span class="cm">/* supervisor state 0 … 3 */</span>
+    <span class="kw">uint8_T</span>   dtc;                 <span class="cm">/* 0 = OK; bit0 range, bit1 rate, bit2 corr */</span>
+    <span class="kw">boolean_T</span> mil;                 <span class="cm">/* malfunction lamp */</span>
+    <span class="kw">boolean_T</span> ff_valid;            <span class="cm">/* freeze-frame captured */</span>
+} DiagOut;</pre></div>
+    </div>
+  </div>
+</section>
+
+<script>
+// Monitor-setup tabs (accessible: click + arrow keys)
+(function(){
+  const tabs=[...document.querySelectorAll('#code .tab')];
+  if(!tabs.length) return;
+  const panels=tabs.map(t=>document.getElementById(t.getAttribute('aria-controls')));
+  function sel(i){tabs.forEach((t,k)=>{const on=k===i;t.setAttribute('aria-selected',on?'true':'false');t.tabIndex=on?0:-1;panels[k].hidden=!on;});}
+  tabs.forEach((t,i)=>{
+    t.addEventListener('click',()=>{sel(i);t.focus();});
+    t.addEventListener('keydown',e=>{
+      let n;
+      if(e.key==='ArrowRight'||e.key==='ArrowDown') n=(i+1)%tabs.length;
+      else if(e.key==='ArrowLeft'||e.key==='ArrowUp') n=(i-1+tabs.length)%tabs.length;
+      else if(e.key==='Home') n=0; else if(e.key==='End') n=tabs.length-1; else return;
+      e.preventDefault();sel(n);tabs[n].focus();
+    });
+  });
+})();
+</script>
+
+<div class="rule"></div>
+
+<!-- ARTIFACTS -->
+<section id="artifacts">
+  <div class="wrap">
+    <div class="eyebrow fi">MBD Artifacts</div>
+    <h2 class="s-title fi">Build &amp; Verification</h2>
+    <div class="bar fi"></div>
+    <div class="card fi">
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>Monitor defined as code</h4><p>The Simulink model and Stateflow fault machine are constructed via the Simulink API in <a href="https://github.com/SaaimSaad" target="_blank" rel="noopener"><code>build_model.m</code></a> — reviewable and diffable in git. Requirements, design, and test plan are in the repo and track the same rationality tests, debounce, and state machine shown above.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>Logic verified (browser + reference tests)</h4><p>Exercised live above and checked against requirement thresholds in <code>test/test_diag_monitor.m</code> and <code>verify_diag_logic.js</code> — REQ-DIAG-001…010 all pass, independent of Simulink.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-done">Done</span>
+        <div><h4>AUTOSAR Classic SWC description</h4><p>A hand-authored, schema-valid <code>autosar/DiagMonitor.arxml</code> — ports, sender/receiver interfaces, a 10 ms periodic runnable, and the I/O contract for integrating the monitor as an AUTOSAR Classic software component.</p></div>
+      </div>
+      <div class="art">
+        <span class="art-status st-pending">Pending</span>
+        <div><h4>Simulink/Stateflow diagram + MCDC coverage</h4><p>The rendered <code>.slx</code> diagram and the decision/condition/MCDC coverage report — produced by running <code>build_model.m</code> / <code>collect_coverage.m</code> on a personal MATLAB. Screenshots will be embedded here.</p></div>
+      </div>
+      <div style="margin-top:24px;display:flex;gap:11px;flex-wrap:wrap">
+        <a href="https://github.com/SaaimSaad" class="btn-p" target="_blank" rel="noopener">View Repository →</a>
+        <a href="newcv.html#projects" class="btn-s">Back to Projects</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="carbon">
+  <div class="wrap ft-in">
+    <span class="ft-logo">MSS · 2026</span>
+    <span class="ft-copy">Muhammed Saaim Saad · Sensor Diagnostic Monitor</span>
+    <a href="newcv.html" class="n-back">Portfolio ↗</a>
+  </div>
+</footer>
+
+<script>
+// Nav scroll + fade-in
+const nav=document.getElementById('nav');
+addEventListener('scroll',()=>nav.classList.toggle('sc',scrollY>20),{passive:true});
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('v');io.unobserve(e.target)}}),{threshold:.08});
+document.querySelectorAll('.fi').forEach(el=>io.observe(el));
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// Diagnostic Console — sensor diagnostic monitor simulation.
+// Mirrors matlab/Rationality + Stateflow supervisor and verify_diag_logic.js:
+// range / rate / correlation rationality, a shared debounced fail counter,
+// and the NO_FAULT→PENDING→CONFIRMED→HEALING machine with DTC, freeze-frame,
+// MIL, and healing. heal_cnt is shortened for a watchable demo.
+// ════════════════════════════════════════════════════════════════════
+(function(){
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const el=id=>document.getElementById(id);
+  const P={
+    Ts:0.01,
+    v1_lo:0.5, v1_hi:4.5, v2_lo:0.25, v2_hi:2.25,
+    v_oor_lo:0.20, v_oor_hi:4.80, dv_max:1.50, corr_tol:10.0,
+    confirm_cnt:20, heal_cnt:120, warm_min:60.0      // heal_cnt shortened (repo uses 300)
+  };
+  const S={NO_FAULT:0,PENDING:1,CONFIRMED:2,HEALING:3};
+  const NAME=['NO_FAULT','PENDING','CONFIRMED','HEALING'];
+  const v1_of=pct=>P.v1_lo+pct/100*(P.v1_hi-P.v1_lo);
+  const v2_of=pct=>P.v2_lo+pct/100*(P.v2_hi-P.v2_lo);
+  const pct1_of=v=>(v-P.v1_lo)/(P.v1_hi-P.v1_lo)*100;
+  const pct2_of=v=>(v-P.v2_lo)/(P.v2_hi-P.v2_lo)*100;
+
+  // inputs / injected faults
+  let pedal=35, warm=true;
+  let faultActive=false, spikeQueued=false;
+  let liveV1=0, liveV2=0, liveTestbits=0;
+  const ledHold=[0,0,0]; // peak-hold frame counters: [range, rate, corr]
+  let st, buf=[]; const WIN=6;
+
+  function reset(){
+    faultActive=false; spikeQueued=false;
+    ledHold[0]=ledHold[1]=ledHold[2]=0;
+    st={state:S.NO_FAULT,failCnt:0,healCnt:0,dtc:0,mil:0,ff_valid:0,freeze:null,v1_prev:v1_of(35),t:0};
+    buf=[];
+  }
+
+  function codeText(c){
+    const parts=[]; if(c&1)parts.push('RANGE'); if(c&2)parts.push('RATE'); if(c&4)parts.push('CORR');
+    return parts.length?parts.join(' + '):'—';
+  }
+
+  function step(){
+    // build the two sensor voltages from the pedal, applying injected faults
+    let v1=v1_of(pedal), v2=v2_of(pedal);
+    if(faultActive){ v1=4.90; }                                    // persistent electrical OOR high
+    if(spikeQueued){ v1=clamp(v1_of(pedal)+P.dv_max*2,0,5.0); spikeQueued=false; } // single-sample spike
+
+    const ect = warm?90:40;
+    const enable = ect>=P.warm_min;
+    const p1=pct1_of(v1), p2=pct2_of(v2);
+    const range_bad=(v1<P.v_oor_lo)||(v1>P.v_oor_hi);
+    const rate_bad =Math.abs(v1-st.v1_prev)>P.dv_max;
+    const corr_bad =Math.abs(p1-p2)>P.corr_tol;
+    const any_bad=range_bad||rate_bad||corr_bad;
+    const testbits=(range_bad?1:0)|(rate_bad?2:0)|(corr_bad?4:0);
+
+    if(enable){
+      if(any_bad) st.failCnt=Math.min(st.failCnt+1,P.confirm_cnt);
+      else        st.failCnt=Math.max(st.failCnt-1,0);
+    }
+
+    switch(st.state){
+      case S.NO_FAULT: if(st.failCnt>0) st.state=S.PENDING; break;
+      case S.PENDING:
+        if(st.failCnt>=P.confirm_cnt){
+          st.state=S.CONFIRMED; st.dtc=testbits||st.dtc;
+          if(!st.ff_valid){ st.freeze={rpm:Math.round(800+pedal*42),load:pedal,ect,v1,v2,code:st.dtc}; st.ff_valid=1; }
+        } else if(st.failCnt===0) st.state=S.NO_FAULT;
+        break;
+      case S.CONFIRMED: if(enable&&!any_bad){ st.state=S.HEALING; st.healCnt=0; } break;
+      case S.HEALING:
+        if(any_bad){ st.state=S.CONFIRMED; st.healCnt=0; }
+        else { st.healCnt++; if(st.healCnt>=P.heal_cnt){ st.dtc=0; st.ff_valid=0; st.freeze=null; st.failCnt=0; st.state=S.NO_FAULT; } }
+        break;
+    }
+    st.mil=(st.state===S.CONFIRMED||st.state===S.HEALING)?1:0;
+    st.v1_prev=v1; st.t+=P.Ts;
+    liveV1=v1; liveV2=v2; liveTestbits=testbits;
+    buf.push({t:st.t,p1,p2,cnt:st.failCnt,state:st.state});
+    while(buf.length&&st.t-buf[0].t>WIN) buf.shift();
+  }
+
+  // ───── plot ─────
+  const cv=el('plot'),g=cv.getContext('2d');
+  function fit(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;cv.width=r.width*d;cv.height=250*d;g.setTransform(d,0,0,d,0,0);}
+  addEventListener('resize',fit);fit();
+  function draw(){
+    const W=cv.width/(devicePixelRatio||1),H=250;g.clearRect(0,0,W,H);
+    const x0=40,x1=W-12,y0=14,y1=H-22;
+    const X=t=>x0+((t-(st.t-WIN))/WIN)*(x1-x0), Y=v=>y1-(v/100)*(y1-y0);
+    g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;g.font='10px JetBrains Mono,monospace';g.fillStyle='#7A8490';
+    for(let v=0;v<=100;v+=25){const y=Y(v);g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke();g.fillText(v,x0-6-g.measureText(v).width,y+3);}
+    g.fillText('%',6,y0-5);
+    if(buf.length>1){
+      // confirm counter (orange, scaled to %)
+      g.strokeStyle='rgba(255,106,42,.6)';g.lineWidth=1.2;g.beginPath();
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(d.cnt/P.confirm_cnt*100);i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();
+      // sensor B (amber dashed)
+      g.strokeStyle='rgba(200,168,0,.85)';g.setLineDash([5,4]);g.lineWidth=1.3;g.beginPath();
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(clamp(d.p2,-5,105));i?g.lineTo(x,y):g.moveTo(x,y);});g.stroke();g.setLineDash([]);
+      // sensor A (teal, red when confirmed/healing)
+      g.lineWidth=2;let pf=(buf[0].state>=S.CONFIRMED);g.beginPath();g.strokeStyle=pf?'#FF4444':'#00D2BE';
+      buf.forEach((d,i)=>{const x=X(d.t),y=Y(clamp(d.p1,-5,105)),f=(d.state>=S.CONFIRMED);
+        if(f!==pf){g.stroke();g.beginPath();g.strokeStyle=f?'#FF4444':'#00D2BE';g.moveTo(x,y);pf=f;}else{i?g.lineTo(x,y):g.moveTo(x,y);}});g.stroke();
+    }
+  }
+
+  // ───── readouts ─────
+  const milTxt=el('mil-txt'),milLamp=el('mil');
+  function readouts(){
+    const sp=el('ro-state');sp.textContent=NAME[st.state];sp.className='state-pill st-'+NAME[st.state];
+    el('ro-dtc').textContent=st.dtc?('0x'+st.dtc.toString(16).toUpperCase()+' · '+codeText(st.dtc)):'—';
+    const on=st.mil===1;
+    milLamp.classList.toggle('on',on);
+    milTxt.textContent=on?'ON':'OFF';
+    milTxt.className='lamp-state'+(on?' on':'');
+    el('lampbox').classList.toggle('on',on);
+    el('lamp-dot').classList.toggle('on',on);
+    // freeze-frame
+    if(st.ff_valid&&st.freeze){
+      el('ff-tag').textContent='· captured';el('ff-tag').style.color='var(--red)';
+      el('ff-body').style.display='none';el('ff-grid').style.display='grid';
+      el('ff-code').textContent=codeText(st.freeze.code);
+      el('ff-rpm').textContent=st.freeze.rpm+' rpm';
+      el('ff-load').textContent=Math.round(st.freeze.load)+' %';
+      el('ff-ect').textContent=Math.round(st.freeze.ect)+' °C';
+      el('ff-s1').textContent=st.freeze.v1.toFixed(2)+' V';
+      el('ff-s2').textContent=st.freeze.v2.toFixed(2)+' V';
+    } else {
+      el('ff-tag').textContent='— not captured';el('ff-tag').style.color='var(--silver-dim)';
+      el('ff-body').style.display='';el('ff-grid').style.display='none';
+    }
+    // fault-status indicator
+    el('fault-dot').classList.toggle('on',faultActive);
+    el('fault-label').textContent=faultActive?'Fault injected':'No fault injected';
+    el('b-inj').classList.toggle('injecting',faultActive);
+    // sensor voltage cards
+    const bad1=(liveV1<P.v_oor_lo||liveV1>P.v_oor_hi);
+    el('sv-num1').textContent=liveV1.toFixed(2)+' V';
+    el('sv-num1').className='sv-num'+(bad1?' bad':'');
+    el('sv-card1').className='sv-card'+(bad1?' bad':'');
+    el('sv-tag1').textContent=bad1?'OOR FAULT':'NORMAL';
+    el('sv-tag1').className='sv-tag '+(bad1?'bad':'ok');
+    el('sv-fill1').style.width=(Math.min(liveV1/5,1)*100).toFixed(1)+'%';
+    el('sv-fill1').className='sv-bar-fill'+(bad1?' bad':'');
+    el('sv-num2').textContent=liveV2.toFixed(2)+' V';
+    el('sv-fill2').style.width=(Math.min(liveV2/2.5,1)*100).toFixed(1)+'%';
+    // rationality test LEDs — peak-hold so a 1-step spike stays visible for ~120 ms
+    ['range','rate','corr'].forEach((n,i)=>{
+      const bad=!!((liveTestbits>>i)&1);
+      if(bad) ledHold[i]=7; else if(ledHold[i]>0) ledHold[i]--;
+      const show=bad||ledHold[i]>0;
+      el('td-'+n).classList.toggle('fail',show);
+      el('ti-'+n).classList.toggle('fail',show);
+    });
+    // arc debounce counter
+    const pct=st.failCnt/P.confirm_cnt;
+    const arcOff=(157*(1-pct)).toFixed(1);
+    const arcR=Math.round(200+pct*55),arcG=Math.round(168*(1-pct));
+    el('arc-fill').setAttribute('stroke-dashoffset',arcOff);
+    el('arc-fill').setAttribute('stroke',`rgb(${arcR},${arcG},0)`);
+    el('arc-num').textContent=st.failCnt;
+    el('arc-num').setAttribute('fill',`rgb(${arcR},${arcG},0)`);
+    // state machine flow pills
+    const smN=['nofault','pending','confirmed','healing'];
+    smN.forEach((n,i)=>{
+      el('smp-'+i).className='sm-pill'+(i===st.state?' s-'+n:'');
+    });
+  }
+
+  // ───── loop ─────
+  let last=performance.now(),acc=0,rafId=null;
+  function frame(now){
+    try{let dt=(now-last)/1000;last=now;if(dt>0.1)dt=0.1;acc+=dt;
+      while(acc>=P.Ts){step();acc-=P.Ts;} draw();readouts();
+    }catch(e){console.error('sim',e);}
+    rafId=requestAnimationFrame(frame);
+  }
+
+  // ───── controls ─────
+  const sped=el('s-ped');
+  sped.addEventListener('input',()=>{pedal=parseFloat(sped.value);el('v-ped').textContent=Math.round(pedal)+'%';});
+  function setWarm(w){warm=w;el('sel-warm').classList.toggle('active',w);el('sel-cold').classList.toggle('active',!w);
+    el('sel-warm').setAttribute('aria-pressed',w);el('sel-cold').setAttribute('aria-pressed',!w);}
+  el('sel-warm').addEventListener('click',()=>setWarm(true));
+  el('sel-cold').addEventListener('click',()=>setWarm(false));
+  el('b-inj').addEventListener('click',()=>{faultActive=true;});
+  el('b-rem').addEventListener('click',()=>{faultActive=false;});
+  el('b-spike').addEventListener('click',()=>{
+    spikeQueued=true;
+    const b=el('b-spike');
+    b.classList.add('firing');
+    b.addEventListener('animationend',()=>b.classList.remove('firing'),{once:true});
+  });
+  el('b-reset').addEventListener('click',()=>{
+    reset();
+    if(!rafId){last=performance.now();acc=0;rafId=requestAnimationFrame(frame);}
+  });
+
+  reset(); setWarm(true);
+  rafId=requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
