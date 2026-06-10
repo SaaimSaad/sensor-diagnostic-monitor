@@ -1,7 +1,11 @@
 # Sensor Diagnostic Monitor
 
-> **OBD-style redundant-sensor diagnostic monitor — model-based design (Simulink/Stateflow
-> model-as-code → generated C → MIL/SIL, MCDC coverage, AUTOSAR SWC).**
+[![Verification](https://img.shields.io/badge/diag--logic%20checks-passing-brightgreen)](verify_diag_logic.js)
+[![MATLAB](https://img.shields.io/badge/MATLAB-R2022a%2B-orange)](matlab/)
+[![Simulink](https://img.shields.io/badge/Simulink%20%7C%20Stateflow%20%7C%20Embedded%20Coder-required-blue)](matlab/build_model.m)
+[![Standards](https://img.shields.io/badge/MISRA--C%20%7C%20MIL%2FSIL%20%7C%20MCDC-MBD%20workflow-555)](docs/test-plan.md)
+[![Architecture](https://img.shields.io/badge/AUTOSAR-Classic%20SWC-lightgrey)](autosar/DiagMonitor.arxml)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 A model-based design (MBD) of an **OBD-style sensor diagnostic monitor** for a
 safety-relevant redundant sensor pair, built the way production powertrain
